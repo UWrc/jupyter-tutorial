@@ -110,7 +110,7 @@ You'll see the full path such as `/gscratch/scrubbed/$USER/myenv/bin/python`, an
 
 You can now use your Conda environment inside Jupyter via Open OnDemand (OOD).
 
-Install the IPython kernel package `ipykernel` from a terminal on Tillicum:
+Install the IPython kernel package `ipykernel` from a terminal on Klone:
 
 ```bash
 module load conda
@@ -165,7 +165,7 @@ This release compute resources back to the cluster.
 
 > ⚠️ **WARNING:** For Tillicum, leaving sessions running consumes GPU hours and counts toward your project usage.
 
-To remove your temporary environment later, run from a terminal on Tillicum:
+To remove your temporary environment later, run from a terminal on Klone:
 
 ```bash
 module load conda
