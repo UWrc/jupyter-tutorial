@@ -24,6 +24,7 @@ You will:
 - [5. Run Python in Jupyter](#5-run-python-in-jupyter)
 - [6. Manage Packages in a Conda Environment](#6-manage-packages-in-a-conda-environment)
 - [7. Cleanup](#7-cleanup)
+- [8. Run a Python Script as a Slurm Job (Optional)](#8-run-a-python-script-as-a-slurm-job-optional)
 
 ## 0. Create Your Working Directory
 
@@ -96,18 +97,19 @@ pkgs_dirs:
 
 Please replace `$USER` with your own UW NetID. Save (^O) and exit (^X) before continue in the shell.
 
-This will place all of your environments and package caches in the specified directories by default, and you won't have to worry about specifying the full prefix to your environment when installing it or activating it.
+This will place all of your environments and package caches in the specified directories by default, and you won't have to worry about specifying the full prefix to your environment when installing or activating it.
 
 **Create a Conda Environment**
 
 Create a simple Python environment:
 
 ```bash
-# Rename "myenv" to anything you prefer.
 conda create --name myenv python=3.11 numpy scipy
 ```
 
-Activate the environment:
+Enter "y" to proceed.
+
+It may take some time to finish. Once the environment is created, activate it:
 
 ```bash
 conda activate myenv
@@ -142,7 +144,7 @@ conda install ipykernel
 Register the environment as a Jupyter kernel:
 
 ```bash
-python -m ipykernel install --user --name myenv --display-name "Python (Demo)"
+python -m ipykernel install --user --name myenv --display-name "Python (myenv)"
 ```
 
 > 💡 **TIP:** You only need to register each environment once.
@@ -151,6 +153,13 @@ You can verify that the kernel is registered:
 
 ```bash
 jupyter kernelspec list
+```
+
+Example output:
+
+```bash
+Available kernels:
+  myenv            /mmfs1/home/$USER/.local/share/jupyter/kernels/myenv
 ```
 
 ## 4. Launch JupyterLab through Open OnDemand
@@ -163,6 +172,9 @@ Launch JupyterLab:
     - **Account**: uwit
     - **Partition**: ckpt-all
     - **Server Environment**: "Module: jupyter/minimal"
+    - **Jupyter User Interface**: Jupyter Lab
+    - **Tasks**: 1
+    - **CPUs per task**: 1
     - **Memory (GB)**: 10
     - **Number of hours**: 1
 - Click **Launch**, wait for resources to be allocated.
@@ -174,8 +186,8 @@ Now your computing environment is ready.
 
 Once JupyterLab opens:
 
-- In the **Launcher** tab, select **Python (Demo)** under **Notebook**.
-- Alternatively, open an existing notebook and select **Kernel** > **Change Kernel** > **Python (Demo)** in the dropdown box to switch kernels.
+- In the **Launcher** tab, select **Python (myenv)** under **Notebook**.
+- Alternatively, open an existing notebook and select **Kernel** > **Change Kernel** > **Python (myenv)** in the dropdown box to switch kernels.
 
 This starts a new notebook using your Conda environment.
 
@@ -202,7 +214,7 @@ The output confirms that:
 
 ## 6. Manage Packages in a Conda Environment
 
-Conda environments allow you to add or remove packages at any time as your workflow evolves.
+Unlike read-only Apptainer container image, Conda environments allow you to add or remove packages at any time as your workflow evolves.
 
 Create a new cell in your notebook and run the following:
 
@@ -221,16 +233,22 @@ plt.xlabel("x")
 plt.ylabel("sin(x)");
 ```
 
-You should see an ImportError, which indicates that matplotlib is not yet installed in your environment.
+You should see an ModuleNotFoundError, which indicates that matplotlib is not yet installed in your environment.
 
 To install it, return to your terminal session on Klone where the environment is activated:
 
 ```bash
-conda activate myenv
+# conda activate myenv
 conda install matplotlib
 ```
 
-After installation finishes, return to your Jupyter notebook and run the cell again. You should now see a simple *sine* wave plot displayed in the notebook.
+After installation finishes, terminate the interactive job:
+
+```
+exit
+```
+
+Return to your Jupyter notebook and run the cell again. You should now see a simple ***sine* wave plot** displayed in the notebook.
 
 This demonstrates how packages installed in your Conda environment become immediately available to your Jupyter kernel.
 
@@ -238,20 +256,77 @@ This demonstrates how packages installed in your Conda environment become immedi
 
 When finished:
 
-1. Save your notebook
-2. Close the Jupyter browser tab
-3. Return to the OOD dashboard
-4. Click **Delete** on your running session card
+1. Save your notebook and close the Jupyter browser tab.
+2. Return to OOD **My Interactive Sessions** dashboard and click **Delete** on your running session card.
 
 This releases compute resources back to the cluster.
 
 > ⚠️ **WARNING:** For Tillicum, leaving sessions running consumes GPU hours and counts toward your project usage.
 
-To remove your temporary environment later, run from a terminal on Klone:
+## 8. Run a Python Script as a Slurm Job (Optional)
+
+While Jupyter is useful for interactive exploration, many workflows on Hyak run as **Slurm batch jobs** so they can execute unattended. Batch jobs are ideal for longer computations, automated workflows, or jobs that do not require user interaction.
+
+In this step, we will run a simple Python script using the **Slurm job scheduler**.
+
+**Prepare Scipts**
+
+Return to your terminal and navigate to the tutorial directory. First, inspect the Python script:
 
 ```bash
-module load conda
-conda env remove -n myenv
+cat python_batch.py
 ```
 
-> 📝 **NOTE:** Make sure your environment is *deactivated* before removing it.
+This script performs a small numerical computation and prints the results.
+
+Next, examine the Slurm job script:
+
+```bash
+cat python_batch.slurm
+```
+
+This script loads the Conda environment and runs the Python program on a compute node through Slurm.
+
+**Submit the Job**
+
+Submit the batch job to Slurm:
+
+```bash
+sbatch python_batch.slurm
+```
+
+Check the job status:
+
+```bash
+squeue -u $USER
+```
+
+Once the job has completed, view the standard output file generated by the job:
+
+```bash
+cat python_batch_*.out
+```
+
+The output should contain the `module load` message and the printed results from the Python script.
+
+**Remove the Demo Environment (Optional)**
+
+If you no longer need the environment created during this tutorial, you can remove it from a terminal on Klone:
+
+```bash
+salloc -A uwit -p ckpt-all -N 1 --time=01:00:00
+module load conda
+conda env remove -n myenv # press "y" to proceed
+rm -r $HOME/.local/share/jupyter/kernels/myenv
+```
+
+> 📝 **NOTE:** Make sure your environment is *deactivated* (`conda deactivate`) before removing it.
+
+> 💡 **Key takeaway:**
+>
+> You now know two common ways to run Python on Hyak:
+> 
+> - **Jupyter via Open OnDemand** — interactive exploration, debugging, visualization
+> - **Slurm batch jobs** — large simulations, training runs, automated workflows
+>
+> Both approaches can use the same Conda environment, ensuring consistency between development and production runs on the cluster.
