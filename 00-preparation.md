@@ -90,6 +90,8 @@ mkdir /gscratch/scrubbed/$USER
 cd /gscratch/scrubbed/$USER
 ```
 
+> 📝 **NOTE:** The `$USER` variable automatically expands to your username.
+
 Next, clone the git repository for this tutorial into your personal folder:
 
 ```bash

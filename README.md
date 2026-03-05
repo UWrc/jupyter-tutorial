@@ -42,7 +42,7 @@ A link to the recording of the **March 5, 2026 Hyak Jupyter workshop** will be a
 
 ## Feedback
 
-We’d love your feedback to help improve this tutorial and future Hyak trainings. After completing the tutorial or attending the workshop, please take a moment to fill out our feedback form.
+We’d love your feedback to help improve this tutorial and future Hyak trainings. After completing the tutorial or attending the workshop, please take a moment to fill out our [feedback form](https://forms.office.com/r/dNAQwnc6rY).
 
 ## Additional Resources
 

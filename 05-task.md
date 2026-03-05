@@ -1,61 +1,71 @@
 <!-- omit in toc -->
-# Hands-on Exercise: Running a Python Script on Hyak Klone
+# Hands-on Exercise: Running Python in Jupyter on Hyak Klone
 
-This hands-on exercise will guide you through the essential steps for running a Python script on Hyak Klone:
+This hands-on exercise guides you through the essential steps for running **Python in Jupyter on Hyak Klone**.
 
-You’ll create a working directory, start an interactive job, load modules, build a Conda environment, connect that environment to Jupyter Notebook, and finally run a Python script using Jupyter on Open OnDemand (OOD).
+You will:
 
-> 🎯 **GOAL:** Learn how to build and run a simple workflow on Hyak Klone — from terminal to Jupyter.
+- create a working directory
+- start an interactive job
+- build a Conda environment
+- register that environment as a Jupyter kernel
+- launch Jupyter through Open OnDemand
+- run Python inside a Jupyter notebook
+
+> 🎯 **GOAL:** Learn how to build and run a simple Python workflow on Hyak Klone — from terminal to Jupyter.
 
 **Overview**
 
 - [0. Create Your Working Directory](#0-create-your-working-directory)
 - [1. Start an Interactive Job](#1-start-an-interactive-job)
-- [2. Load Conda Module and Create an Environment](#2-load-conda-module-and-create-an-environment)
-- [3. Register the Conda Environment for Jupyter Notebook](#3-register-the-conda-environment-for-jupyter-notebook)
-- [4. Launch JupyterLab from Open OnDemand](#4-launch-jupyterlab-from-open-ondemand)
-- [5. Troubleshooting](#5-troubleshooting)
-- [6. Cleanup](#6-cleanup)
+- [2. Load Conda and Create an Environment](#2-load-conda-and-create-an-environment)
+- [3. Register the Conda Environment as a Jupyter Kernel](#3-register-the-conda-environment-as-a-jupyter-kernel)
+- [4. Launch JupyterLab through Open OnDemand](#4-launch-jupyterlab-through-open-ondemand)
+- [5. Run Python in Jupyter](#5-run-python-in-jupyter)
+- [6. Manage Packages in a Conda Environment](#6-manage-packages-in-a-conda-environment)
+- [7. Cleanup](#7-cleanup)
 
 ## 0. Create Your Working Directory
 
-All hands-on exercise should be done in your `/gscratch/scrubbed` directory. Let's start with creating your own directory in `/gscratch/scrubbed` and cloning the onboarding repository to your directory:
+If you have not already completed the preparations steps, please follow the instructions in [00-preparation.md](./00-preparation.md) to set up your Hyak account, log in to Klone, configure storage, and clone the git repository for this tutorial.
+
+Navigate to your working directory for this tutorial:
 
 ```bash
-# Skip this step if you've already completed it.
-mkdir /gscratch/scrubbed/$USER
-cd /gscratch/scrubbed/$USER
-git clone https://github.com/UWrc/jupyter-tutorial.git
+cd /gscratch/scrubbed/$USER/jupyter-tutorial
 ```
-
-> 📝 **NOTE:** The `$USER` variable automatically expands to your username.
 
 ## 1. Start an Interactive Job
 
 > ⚠️ **WARNING:** All compute work must run on compute nodes — **never** on the login node.
 
-Request an interactive session with 1 GPU for 1 hour:
+Request an interactive session for 1 hour:
 
 ```bash
-salloc --partition=ckpt-all --time=01:00:00
+salloc -A uwit -p ckpt-all -N 1 --time=01:00:00
 ```
 
-Once resources are allocated, confirm you're on a compute node:
+Once resources are allocated, confirm you are on a compute node:
 
 ```bash
 hostname
 ```
 
-You should see the hostname change from `klone-login0*` to something like `n***`.
+The hostname should change from `klone-login0*` to something like `n***`.
 
-## 2. Load Conda Module and Create an Environment
+> 💡 **TIP:** If you requested a GPU node, you can also verify GPU visibility:
+> ```bash
+> salloc -A uwit -p ckpt-all --gpus 1 --time=01:00:00
+> nvidia-smi
+>```
 
-> ⚠️ **WARNING:** To install GPU-aware packages (e.g., cupy, PyTorch, TensorFlow), always request a GPU node for the installation.
+## 2. Load Conda and Create an Environment
 
-List available modules and locate Conda:
+**Load Conda Module**
+
+First locate the Conda module:
 
 ```bash
-module avail
 module spider conda
 ```
 
@@ -65,26 +75,32 @@ Load the system Conda module:
 module load conda
 ```
 
-To avoid Home disk quota exceeded, open the file `$HOME/.condarc`:
+**Configure Conda Storage Location**
+
+By default, Conda installs environments in your home directory, which only has a **10 GB quota**. We recommend storing environments in your project directory. But for this tutorial, we'll use the **scrubbed storage**.
+
+Create or edit your Conda configuration file:
 
 ```bash
 nano ~/.condarc
 ```
 
-and edit it to include following lines:
+Add the following:
 
 ```yaml
 envs_dirs:
-  - /gscratch/scrubbed/<UW NetID>/conda/envs
+  - /gscratch/scrubbed/$USER/conda/envs
 pkgs_dirs:
-  - /gscratch/scrubbed/<UW NetID>/conda/pkgs
+  - /gscratch/scrubbed/$USER/conda/pkgs
 ```
 
-Please replace <UW NetID> with your own UW NetID. Save (^O) and exit (^X) before continue in the shell.
+Please replace `$USER` with your own UW NetID. Save (^O) and exit (^X) before continue in the shell.
 
 This will place all of your environments and package caches in the specified directories by default, and you won't have to worry about specifying the full prefix to your environment when installing it or activating it.
 
-Create a Conda environment in your scrubbed directory:
+**Create a Conda Environment**
+
+Create a simple Python environment:
 
 ```bash
 # Rename "myenv" to anything you prefer.
@@ -104,21 +120,26 @@ which python
 python --version
 ```
 
-You'll see the full path such as `/gscratch/scrubbed/$USER/myenv/bin/python`, and `python --version` returns "Python 3.11.11". That confirms your environment is isolated and stored safely in your workspace.
+Example output:
 
-## 3. Register the Conda Environment for Jupyter Notebook
+```txt
+/gscratch/scrubbed/$USER/conda/envs/myenv/bin/python
+Python 3.11.x
+```
 
-You can now use your Conda environment inside Jupyter via Open OnDemand (OOD).
+This confirms your environment is now isolated and stored safely in your workspace.
 
-Install the IPython kernel package `ipykernel` from a terminal on Klone:
+> ⚠️ **WARNING:** To install GPU-aware packages (e.g., cupy, PyTorch, TensorFlow), always request a GPU node for the installation.
+
+## 3. Register the Conda Environment as a Jupyter Kernel
+
+To use this environment inside Jupyter, install the IPython kernel package `ipykernel` from a terminal on Klone:
 
 ```bash
-module load conda
-conda activate myenv
 conda install ipykernel
 ```
 
-Register your environment as a Jupyter kernel:
+Register the environment as a Jupyter kernel:
 
 ```bash
 python -m ipykernel install --user --name myenv --display-name "Python (Demo)"
@@ -126,42 +147,103 @@ python -m ipykernel install --user --name myenv --display-name "Python (Demo)"
 
 > 💡 **TIP:** You only need to register each environment once.
 
-## 4. Launch JupyterLab from Open OnDemand
-
-**Preparation:** By default, Jupyter sessions on OOD start in your Home directory. To access files outside your Home directory, we need to create a symbolic link in your Home directory which links to the actual working directory in `/gscratch/scrubbed/$USER`.
+You can verify that the kernel is registered:
 
 ```bash
-cd ~
-ln -s /gscratch/scrubbed/$USER scrubbed
+jupyter kernelspec list
 ```
 
-Then launch JupyterLab:
+## 4. Launch JupyterLab through Open OnDemand
 
-- Go to [**Hyak Klone Open OnDemand Portal**](https://ondemand.hyak.uw.edu/).
-- Choose **Interactive Apps** > **Jupyter**.
-- Configure:
-    - **Account**: trainob2025
+Launch JupyterLab:
+
+- Log in to [**Hyak Klone Open OnDemand portal**](https://ondemand.hyak.uw.edu/).
+- From the OOD dashboard top menu, select **Interactive Apps** > **Jupyter**.
+- Configure the job:
+    - **Account**: uwit
+    - **Partition**: ckpt-all
+    - **Server Environment**: "Module: jupyter/minimal"
+    - **Memory (GB)**: 10
     - **Number of hours**: 1
-    - **User Interface**: Jupyter Lab
 - Click **Launch**, wait for resources to be allocated.
-- Click **Connect to Jupyter** when resources are ready.
-- In JupyterLab, click **Python (Demo)** under **Notebook** in **Launcher** tab to open a new notebook.
-- Go to **Kernel** > **Change Kernel** > select **Python (Demo)** in the dropdown box.
+- Click **Connect to Jupyter** when job is ready.
 
-Now your computing environment is ready. 
+Now your computing environment is ready.
 
-To test your environment, copy the following code snippet and paste it in a cell, and then run the cell with shift+enter:
+## 5. Run Python in Jupyter
 
-## 5. Troubleshooting
+Once JupyterLab opens:
 
-## 6. Cleanup
+- In the **Launcher** tab, select **Python (Demo)** under **Notebook**.
+- Alternatively, open an existing notebook and select **Kernel** > **Change Kernel** > **Python (Demo)** in the dropdown box to switch kernels.
+
+This starts a new notebook using your Conda environment.
+
+**Test Your Environment**
+
+Copy the following code snippet and paste it in a new cell, and then run the cell with `Shift`+`Enter`:
+
+```python
+import sys
+import numpy as np
+
+print("Python executable:", sys.executable)
+print("Python version:", sys.version)
+
+x = np.random.rand(1000,1000)
+print("Array shape:", x.shape)
+print("Mean value:", x.mean())
+```
+
+The output confirms that:
+
+- Python is running from your custom Conda environment
+- NumPy is installed and working correctly
+
+## 6. Manage Packages in a Conda Environment
+
+Conda environments allow you to add or remove packages at any time as your workflow evolves.
+
+Create a new cell in your notebook and run the following:
+
+```python
+import matplotlib.pyplot as plt
+
+# Generate sample data
+x = np.linspace(0, 10, 100)
+y = np.sin(x)
+
+# Create a plot
+plt.figure()
+plt.plot(x, y)
+plt.title("Simple Sine Wave")
+plt.xlabel("x")
+plt.ylabel("sin(x)");
+```
+
+You should see an ImportError, which indicates that matplotlib is not yet installed in your environment.
+
+To install it, return to your terminal session on Klone where the environment is activated:
+
+```bash
+conda activate myenv
+conda install matplotlib
+```
+
+After installation finishes, return to your Jupyter notebook and run the cell again. You should now see a simple *sine* wave plot displayed in the notebook.
+
+This demonstrates how packages installed in your Conda environment become immediately available to your Jupyter kernel.
+
+## 7. Cleanup
 
 When finished:
 
-1. Close the Jupyter browser tab.
-2. Return to OOD and click **Delete** on your running session card.
+1. Save your notebook
+2. Close the Jupyter browser tab
+3. Return to the OOD dashboard
+4. Click **Delete** on your running session card
 
-This release compute resources back to the cluster.
+This releases compute resources back to the cluster.
 
 > ⚠️ **WARNING:** For Tillicum, leaving sessions running consumes GPU hours and counts toward your project usage.
 
@@ -169,7 +251,7 @@ To remove your temporary environment later, run from a terminal on Klone:
 
 ```bash
 module load conda
-conda env remove --name myenv
+conda env remove -n myenv
 ```
 
 > 📝 **NOTE:** Make sure your environment is *deactivated* before removing it.
